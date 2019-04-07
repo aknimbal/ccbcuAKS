@@ -1,0 +1,68 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: ccbcu-docker-back
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ccbcu-docker-back
+    spec:
+      containers:
+      - name: ccbcu-docker-back
+        image: redis
+        ports:
+        - containerPort: 6379
+          name: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccbcu-docker-back
+spec:
+  ports:
+  - port: 6379
+  selector:
+    app: ccbcu-docker-back
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: ccdocktest 
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 5 
+  template:
+    metadata:
+      labels:
+        app: ccdocktest 
+    spec:
+      containers:
+      - name: ccdocktest 
+        image: acrccbcu.azurecr.io/ccdocktest:v1
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 250m
+          limits:
+            cpu: 500m
+        env:
+        - name: REDIS
+          value: "ccbcu-docker-back"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccdocktest 
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    app: ccdocktest 
